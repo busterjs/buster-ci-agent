@@ -25,6 +25,7 @@ buster.testCase("buster-ci-agent", {
         this.stub(httpStub, "createServer").returns(this.server);
 
         this.stub(childProcessStub, "spawn");
+        this.stub(childProcessStub, "exec");
 
         this.stub(console, "log");
     },
@@ -172,6 +173,36 @@ buster.testCase("buster-ci-agent", {
                     childProcessStub.spawn,
                     config.browsers.IE.start,
                     [captureUrl + "?id=" + idIE]
+                );
+            },
+
+            "runs prepareStart before start": function () {
+
+                var config = {
+                    port: 8888,
+                    browsers: {
+                        "Chrome": {
+                            prepareStart:
+                                "cp d:/temp/prefs_template.js d:/temp/prefs.js",
+                            start: "chromium-browser"
+                        }
+                    }
+                };
+
+                this.agent = new Agent(config);
+                this.agent.handleRequest({
+                    command: "start",
+                    browsers: {
+                        "Chrome": {}
+                    }
+                });
+
+                assert.calledWith(
+                    childProcessStub.exec,
+                    config.browsers.Chrome.prepareStart
+                );
+                assert(
+                    childProcessStub.exec.calledBefore(childProcessStub.spawn)
                 );
             }
         },
