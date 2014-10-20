@@ -9,10 +9,6 @@ var buster = require("buster"),
 
 buster.testCase("buster-ci-agent", {
 
-    setUp: function () {
-        this.stub(console, "log");
-    },
-
     tearDown: function (done) {
         this.agent.close(done);
     },
@@ -24,7 +20,8 @@ buster.testCase("buster-ci-agent", {
             browsers: {
                 "Chrome": {},
                 "IE": {}
-            }
+            },
+            logLevel: 0
         };
 
         this.agent = new Agent(config);

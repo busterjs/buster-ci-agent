@@ -26,7 +26,8 @@
   },
   "dependencies": {
   	"faye": "~1.0",
-  	"formatio": "~1.1"
+  	"formatio": "~1.1",
+  	"evented-logger": "~1.0"
   },
   "devDependencies": {
     "buster": "*",

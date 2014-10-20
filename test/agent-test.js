@@ -14,6 +14,7 @@ var buster = require("buster"),
     refute = buster.refute,
     match = buster.sinon.match;
 
+
 buster.testCase("buster-ci-agent", {
 
     setUp: function () {
@@ -24,10 +25,20 @@ buster.testCase("buster-ci-agent", {
         this.server.close = this.stub();
         this.stub(httpStub, "createServer").returns(this.server);
 
-        this.stub(childProcessStub, "spawn");
+        this.processStub = {
+            on: this.stub(),
+            stdout: {
+                on: this.stub()
+            },
+            stderr: {
+                on: this.stub()
+            },
+            kill: this.stub()
+        }
+        this.stub(childProcessStub, "spawn").returns(
+            Object.create(this.processStub)
+        );
         this.stub(childProcessStub, "exec");
-
-        this.stub(console, "log");
     },
 
     tearDown: function () {
@@ -37,7 +48,8 @@ buster.testCase("buster-ci-agent", {
     "listens on specified port": function () {
 
         var config = {
-            port: 8888
+            port: 8888,
+            logLevel: 0
         };
 
         this.agent = new Agent(config);
@@ -55,7 +67,8 @@ buster.testCase("buster-ci-agent", {
                 browsers: {
                     "Chrome": {},
                     "IE": {}
-                }
+                },
+                logLevel: 0
             };
 
             this.agent = new Agent(config);
@@ -80,7 +93,8 @@ buster.testCase("buster-ci-agent", {
                         "FF": {
                             start: "firefox"
                         }
-                    }
+                    },
+                    logLevel: 0
                 };
 
                 this.agent = new Agent(config);
@@ -115,7 +129,8 @@ buster.testCase("buster-ci-agent", {
                             start: "chromium-browser",
                             startArgs: ["--new-window"]
                         }
-                    }
+                    },
+                    logLevel: 0
                 };
                 var captureUrl = "http://host:port/capture";
 
@@ -144,7 +159,8 @@ buster.testCase("buster-ci-agent", {
                         "IE": {
                             start: "iexplore"
                         }
-                    }
+                    },
+                    logLevel: 0
                 };
                 var captureUrl = "http://host:port/capture";
                 var idChrome = 123;
@@ -186,7 +202,8 @@ buster.testCase("buster-ci-agent", {
                                 "cp d:/temp/prefs_template.js d:/temp/prefs.js",
                             start: "chromium-browser"
                         }
-                    }
+                    },
+                    logLevel: 0
                 };
 
                 this.agent = new Agent(config);
@@ -218,14 +235,11 @@ buster.testCase("buster-ci-agent", {
                     "IE": {
                         start: "iexplore"
                     }
-                }
+                },
+                logLevel: 0
             };
-            var processChrome = {
-                kill: this.stub()
-            };
-            var processIE = {
-                kill: this.stub()
-            };
+            var processChrome = Object.create(this.processStub);
+            var processIE = Object.create(this.processStub);
             childProcessStub.spawn.withArgs(config.browsers.Chrome.start)
                 .returns(processChrome);
             childProcessStub.spawn.withArgs(config.browsers.IE.start)
