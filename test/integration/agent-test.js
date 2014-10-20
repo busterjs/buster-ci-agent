@@ -3,7 +3,7 @@
 
 var buster = require("buster"),
     faye = require("faye"),
-    Agent = require("buster-ci-agent"),
+    Agent = require("../../lib/agent.js"),
 
     assert = buster.assert;
 

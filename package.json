@@ -1,7 +1,7 @@
 {
   "name": "buster-ci-agent",
   "version": "0.1.0",
-  "description": "TODO",
+  "description": "Starts, captures and stops browsers for buster-ci.",
   "bugs": {
     "url": "https://github.com/busterjs/buster/issues"
   },

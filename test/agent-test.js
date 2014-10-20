@@ -5,7 +5,7 @@ var buster = require("buster"),
     proxyquire = require("proxyquire"),
     httpStub = {},
     childProcessStub = {},
-    Agent = proxyquire("buster-ci-agent", {
+    Agent = proxyquire("../lib/agent.js", {
         "http": httpStub,
         "child_process": childProcessStub
     }),
