@@ -5,9 +5,11 @@ var buster = require("buster"),
     proxyquire = require("proxyquire"),
     httpStub = {},
     childProcessStub = {},
+    closeWindowsStub = buster.sinon.stub(),
     Agent = proxyquire("../lib/agent.js", {
         "http": httpStub,
-        "child_process": childProcessStub
+        "child_process": childProcessStub,
+        "./close-windows": closeWindowsStub
     }),
 
     assert = buster.assert,
@@ -261,8 +263,121 @@ buster.testCase("buster-ci-agent", {
                 }
             });
 
-            assert.calledWithExactly(processChrome.kill);
-            assert.calledWithExactly(processIE.kill);
+            assert.called(processChrome.kill);
+            assert.called(processIE.kill);
+        },
+
+        "kills specified browsers by provided command": function () {
+
+            var config = {
+                port: 8888,
+                browsers: {
+                    "IE": {
+                        start: "iexplore",
+                        stop: {
+                            command: "commandToStop"
+                        }
+                    }
+                },
+                logLevel: 0
+            };
+            var processIE = Object.create(this.processStub);
+            childProcessStub.spawn.withArgs(config.browsers.IE.start)
+                .returns(processIE);
+
+            this.agent = new Agent(config);
+            this.agent.handleRequest({
+                command: "start",
+                browsers: {
+                    "IE": {}
+                }
+            });
+            this.agent.handleRequest({
+                command: "stop",
+                browsers: {
+                    "IE": {}
+                }
+            });
+
+            refute.called(processIE.kill);
+            assert.calledWith(childProcessStub.exec, "commandToStop");
+        },
+
+        "replaces place holder for pid in provided command": function () {
+
+            var config = {
+                port: 8888,
+                browsers: {
+                    "IE": {
+                        start: "iexplore",
+                        stop: {
+                            command: "commandToStop ${PID}"
+                        }
+                    }
+                },
+                logLevel: 0
+            };
+            var processIE = Object.create(this.processStub);
+            processIE.pid = 1234;
+            childProcessStub.spawn.withArgs(config.browsers.IE.start)
+                .returns(processIE);
+
+            this.agent = new Agent(config);
+            this.agent.handleRequest({
+                command: "start",
+                browsers: {
+                    "IE": {}
+                }
+            });
+            this.agent.handleRequest({
+                command: "stop",
+                browsers: {
+                    "IE": {}
+                }
+            });
+
+            refute.called(processIE.kill);
+            assert.calledWith(childProcessStub.exec, "commandToStop 1234");
+        },
+
+        "kills browsers by provided window title": function () {
+            var config = {
+                port: 8888,
+                browsers: {
+                    "IE": {
+                        start: "iexplore",
+                        stop: {
+                            windowTitle: "Buster - Windows Internet Explorer"
+                        }
+                    }
+                },
+                logLevel: 0
+            };
+            var processIE = Object.create(this.processStub);
+            processIE.pid = 1234;
+            childProcessStub.spawn.withArgs(config.browsers.IE.start)
+                .returns(processIE);
+
+            this.agent = new Agent(config);
+            this.agent.handleRequest({
+                command: "start",
+                browsers: {
+                    "IE": {}
+                }
+            });
+            this.agent.handleRequest({
+                command: "stop",
+                browsers: {
+                    "IE": {}
+                }
+            });
+
+            refute.called(processIE.kill);
+            assert.calledWith(
+                closeWindowsStub,
+                config.browsers.IE.stop.windowTitle
+            );
         }
+
     }
 });
