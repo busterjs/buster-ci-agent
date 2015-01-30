@@ -9,6 +9,10 @@ locally and remote.
 
 ## Changelog
 
+**0.1.2** (30.01.2015)
+
+* [Log the child process stdout and stderr properly](https://github.com/busterjs/buster-ci-agent/pull/1)
+
 **0.1.1** (21.10.2014)
 
 * browser can now be killed via configured command
