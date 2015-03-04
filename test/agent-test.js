@@ -1,6 +1,7 @@
 "use strict";
 
 var buster = require("buster"),
+    events = require("events"),
 
     proxyquire = require("proxyquire"),
     httpStub = {},
@@ -28,23 +29,29 @@ buster.testCase("buster-ci-agent", {
         this.stub(httpStub, "createServer").returns(this.server);
 
         this.processStub = {
-            on: this.stub(),
-            stdout: {
-                on: this.stub()
-            },
-            stderr: {
-                on: this.stub()
-            },
-            kill: this.stub()
+            create: function () {
+
+                var stub = new events.EventEmitter();
+                stub.stdout = {
+                    on: this.stub()
+                };
+                stub.stderr = {
+                    on: this.stub()
+                };
+                stub.kill = this.stub();
+
+                return stub;
+            }.bind(this)
         }
         this.stub(childProcessStub, "spawn").returns(
-            Object.create(this.processStub)
+            this.processStub.create()
         );
         this.stub(childProcessStub, "exec");
+        process.setMaxListeners(0);
     },
 
     tearDown: function () {
-        this.agent.close();
+        this.agent.close(function () {});
     },
 
     "listens on specified port": function () {
@@ -74,7 +81,7 @@ buster.testCase("buster-ci-agent", {
             };
 
             this.agent = new Agent(config);
-            var response = this.agent.handleRequest({ command: "Welcome" });
+            var response = this.agent._handleRequest({ command: "Welcome" });
 
             assert.equals(response.browsers, config.browsers);
         },
@@ -100,7 +107,7 @@ buster.testCase("buster-ci-agent", {
                 };
 
                 this.agent = new Agent(config);
-                this.agent.handleRequest({
+                this.agent._handleRequest({
                     command: "start",
                     browsers: {
                         "Chrome": {},
@@ -137,7 +144,7 @@ buster.testCase("buster-ci-agent", {
                 var captureUrl = "http://host:port/capture";
 
                 this.agent = new Agent(config);
-                this.agent.handleRequest({
+                this.agent._handleRequest({
                     command: "start",
                     browsers: { "Chrome": {} },
                     url: captureUrl
@@ -169,7 +176,7 @@ buster.testCase("buster-ci-agent", {
                 var idIE = 456;
 
                 this.agent = new Agent(config);
-                this.agent.handleRequest({
+                this.agent._handleRequest({
                     command: "start",
                     browsers: {
                         "Chrome": {
@@ -209,7 +216,7 @@ buster.testCase("buster-ci-agent", {
                 };
 
                 this.agent = new Agent(config);
-                this.agent.handleRequest({
+                this.agent._handleRequest({
                     command: "start",
                     browsers: {
                         "Chrome": {}
@@ -240,22 +247,22 @@ buster.testCase("buster-ci-agent", {
                 },
                 logLevel: 0
             };
-            var processChrome = Object.create(this.processStub);
-            var processIE = Object.create(this.processStub);
+            var processChrome = this.processStub.create();
+            var processIE = this.processStub.create();
             childProcessStub.spawn.withArgs(config.browsers.Chrome.start)
                 .returns(processChrome);
             childProcessStub.spawn.withArgs(config.browsers.IE.start)
                 .returns(processIE);
 
             this.agent = new Agent(config);
-            this.agent.handleRequest({
+            this.agent._handleRequest({
                 command: "start",
                 browsers: {
                     "Chrome": {},
                     "IE": {}
                 }
             });
-            this.agent.handleRequest({
+            this.agent._handleRequest({
                 command: "stop",
                 browsers: {
                     "Chrome": {},
@@ -281,18 +288,20 @@ buster.testCase("buster-ci-agent", {
                 },
                 logLevel: 0
             };
-            var processIE = Object.create(this.processStub);
+            var processIE = this.processStub.create();
             childProcessStub.spawn.withArgs(config.browsers.IE.start)
+                .returns(processIE);
+            childProcessStub.exec.withArgs(config.browsers.IE.stop.command)
                 .returns(processIE);
 
             this.agent = new Agent(config);
-            this.agent.handleRequest({
+            this.agent._handleRequest({
                 command: "start",
                 browsers: {
                     "IE": {}
                 }
             });
-            this.agent.handleRequest({
+            this.agent._handleRequest({
                 command: "stop",
                 browsers: {
                     "IE": {}
@@ -317,19 +326,21 @@ buster.testCase("buster-ci-agent", {
                 },
                 logLevel: 0
             };
-            var processIE = Object.create(this.processStub);
+            var processIE = this.processStub.create();
             processIE.pid = 1234;
             childProcessStub.spawn.withArgs(config.browsers.IE.start)
                 .returns(processIE);
+            childProcessStub.exec.withArgs("commandToStop 1234")
+                .returns(processIE);
 
             this.agent = new Agent(config);
-            this.agent.handleRequest({
+            this.agent._handleRequest({
                 command: "start",
                 browsers: {
                     "IE": {}
                 }
             });
-            this.agent.handleRequest({
+            this.agent._handleRequest({
                 command: "stop",
                 browsers: {
                     "IE": {}
@@ -353,19 +364,19 @@ buster.testCase("buster-ci-agent", {
                 },
                 logLevel: 0
             };
-            var processIE = Object.create(this.processStub);
+            var processIE = this.processStub.create();
             processIE.pid = 1234;
             childProcessStub.spawn.withArgs(config.browsers.IE.start)
                 .returns(processIE);
 
             this.agent = new Agent(config);
-            this.agent.handleRequest({
+            this.agent._handleRequest({
                 command: "start",
                 browsers: {
                     "IE": {}
                 }
             });
-            this.agent.handleRequest({
+            this.agent._handleRequest({
                 command: "stop",
                 browsers: {
                     "IE": {}
@@ -377,7 +388,89 @@ buster.testCase("buster-ci-agent", {
                 closeWindowsStub,
                 config.browsers.IE.stop.windowTitle
             );
-        }
+        },
 
+        "kills all running browsers on close": function () {
+            var config = {
+                port: 8888,
+                browsers: {
+                    IE: {
+                        start: "iexplore"
+                    },
+                    Chrome: {
+                        start: "chromium-browser",
+                        startArgs: ["--new-window"]
+                    },
+                    FF: {
+                        start: "firefox"
+                    }
+                },
+                logLevel: 0
+            };
+            var processIE = this.processStub.create();
+            processIE.pid = 1234;
+            childProcessStub.spawn.withArgs(config.browsers.IE.start)
+                .returns(processIE);
+            childProcessStub.spawn.withArgs(config.browsers.IE.stop)
+            .returns(processIE);
+            var processChrome = this.processStub.create();
+            processIE.pid = 5678;
+            childProcessStub.spawn.withArgs(config.browsers.Chrome.start)
+                .returns(processChrome);
+            var processFF = this.processStub.create();
+            processFF.pid = 1111;
+            childProcessStub.spawn.withArgs(config.browsers.FF.start)
+                .returns(processFF);
+
+            this.agent = new Agent(config);
+            this.agent._handleRequest({
+                command: "start",
+                browsers: {
+                    IE: {},
+                    Chrome: {}
+                }
+            });
+            this.agent.close();
+
+            assert.calledOnce(processIE.kill);
+            assert.calledOnce(processChrome.kill);
+            refute.called(processFF.kill);
+        },
+
+        "calls callback of close after browsers are closed": function () {
+            var config = {
+                port: 8888,
+                browsers: {
+                    IE: {
+                        start: "iexplore"
+                    },
+                    Chrome: {
+                        start: "chromium-browser",
+                        startArgs: ["--new-window"]
+                    },
+                    FF: {
+                        start: "firefox"
+                    }
+                },
+                logLevel: 0
+            };
+            this.server.close.callsArg(0);
+            this.agent = new Agent(config);
+            this.stub(this.agent, "_stopBrowser");
+            var callback = this.stub();
+            this.agent.close(callback);
+
+            var cb1 = this.agent._stopBrowser.getCall(0).args[2];
+            var cb2 = this.agent._stopBrowser.getCall(1).args[2];
+            var cb3 = this.agent._stopBrowser.getCall(2).args[2];
+
+            refute.called(callback);
+            cb1();
+            refute.called(callback);
+            cb2();
+            refute.called(callback);
+            cb3();
+            assert.calledOnce(callback);
+        }
     }
 });

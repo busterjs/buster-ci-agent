@@ -27,7 +27,8 @@
   "dependencies": {
   	"faye": "~1.0",
   	"formatio": "~1.1",
-  	"evented-logger": "~1.0"
+  	"evented-logger": "~1.0",
+  	"async": "~0.9"
   },
   "optionalDependencies": {
   	"ffi": "~1.2",
