@@ -472,5 +472,17 @@ buster.testCase("buster-ci-agent", {
             cb3();
             assert.calledOnce(callback);
         }
-    }
+    },
+
+    "calls callback of close even if server.close throws":
+        function () {
+
+            this.server.close.throws(new Error("Not running"));
+            this.agent = new Agent({});
+            var callback = this.stub();
+
+            this.agent.close(callback);
+
+            assert.calledOnce(callback);
+        }
 });
