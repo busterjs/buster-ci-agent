@@ -9,6 +9,10 @@ locally and remote.
 
 ## Changelog
 
+**0.1.4** (13.03.2015)
+
+* [Call callback of close even if server.close throws error](https://github.com/busterjs/buster-ci-agent/commit/7c0e69b)
+
 **0.1.3** (04.03.2015)
 
 * Close all browsers on exit, part of issue [#447](https://github.com/busterjs/buster/issues/447)
