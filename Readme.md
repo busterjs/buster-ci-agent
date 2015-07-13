@@ -9,6 +9,10 @@ locally and remote.
 
 ## Changelog
 
+**0.1.5** (13.07.2015)
+
+* [Version of node-ffi updated to 1.3 for node.js 0.12 compatibility](https://github.com/busterjs/buster-ci-agent/pull/2)
+
 **0.1.4** (13.03.2015)
 
 * [Call callback of close even if server.close throws error](https://github.com/busterjs/buster-ci-agent/commit/7c0e69b)
