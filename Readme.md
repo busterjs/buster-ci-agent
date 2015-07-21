@@ -9,6 +9,10 @@ locally and remote.
 
 ## Changelog
 
+**0.1.6** (21.07.2015)
+
+* [Version of ref updated to 1.0](https://github.com/busterjs/buster-ci-agent/pull/3)
+
 **0.1.5** (13.07.2015)
 
 * [Version of node-ffi updated to 1.3 for node.js 0.12 compatibility](https://github.com/busterjs/buster-ci-agent/pull/2)
