@@ -21,6 +21,9 @@
   "scripts": {
     "test": "buster-test"
   },
+  "engines": {
+    "node": ">= 4"
+  },
   "dependencies": {
     "faye": "1.x",
     "formatio": "1.x",
